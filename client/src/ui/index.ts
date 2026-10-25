@@ -37,6 +37,7 @@ import { Toasts } from './toasts';
 import { UpdateToaster } from './version';
 import { TopBar } from './topbar';
 import { mountAttention } from './attention';
+import { mountManage } from './manage';
 import { UpdateBanner } from './update';
 import { WorldPopups } from './world/world-popups';
 import { WorldChip } from './world/world-chip';
@@ -175,6 +176,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   const notifier = new Notifier(ctx, sound.board);
   topbar = new TopBar(ctx);
   mountAttention();
+  mountManage(topbar.panelGroup);
   sidebar = new Sidebar(ctx);
   // Terminal interativo (Claude Code de verdade, dentro do navegador): abrir, assumir e encerrar sessões.
   const pty = new PtyPanel(ctx);
