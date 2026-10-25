@@ -81,8 +81,9 @@ export function createStaticHandler(distDir: string): (req: IncomingMessage, res
       ETag: etag,
       'Last-Modified': new Date(st.mtimeMs).toUTCString(),
       'X-Content-Type-Options': 'nosniff',
-      // A página não deve ser embutida em sites de terceiros (clickjacking nas configurações).
-      'X-Frame-Options': 'DENY',
+      // Patch IGO: cho phép nhúng từ app local (Agent Office ở localhost:1420);
+      // frame-ancestors chỉ localhost nên vẫn chặn clickjacking từ site bên ngoài.
+      'Content-Security-Policy': "frame-ancestors 'self' http://localhost:* http://127.0.0.1:*",
       'Referrer-Policy': 'no-referrer',
     };
     if (isNotModified(req, etag, st.mtimeMs)) {
