@@ -28,6 +28,7 @@ import { nameKey, type AppearanceParts } from '../../shared/appearance';
 import { DemoSimulator } from '../../shared/demo/simulator';
 import { describeGitHubEvent, githubEventKey, RoomEffects, type GitHubEvent } from '../../shared/github';
 import { hash32 } from '../../shared/hash';
+import { pickName } from '../../shared/names';
 import { applyPermission } from '../permissions/registry';
 import type { NameStore, StoredCharacter } from './names';
 import { normalizeCwd, roomDisplayNames, SlotAllocator } from './rooms';
@@ -330,8 +331,9 @@ export class Office {
     // A mesma sessão retomada noutro processo (ex.: "Assumir aqui") mantém o nome, mesmo com o processo antigo
     // ainda saindo do escritório.
     let person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId));
-    // Patch IGO: registry có tên riêng (ví dụ Xây/Soát/Trực) thì dùng làm tên nhân vật.
-    if (p.name) person = { ...person, name: p.name };
+    // Patch IGO: registry có tên vai (Dev/Reviewer/SRE) -> tên + bộ dạng CỐ ĐỊNH
+    // theo tên, để cùng agent luôn là một nhân vật qua mọi session.
+    if (p.name) person = { name: p.name, look: pickName(p.name, new Set()).look };
     const info: AgentInfo = {
       id: p.id,
       kind: 'main',
@@ -348,7 +350,7 @@ export class Office {
       lastEventAt: p.startedAt,
       statusSince: now,
       stats: zeroStats(),
-      seed: chosen?.seed ?? hash32(p.id),
+      seed: p.name ? hash32(p.name) : (chosen?.seed ?? hash32(p.id)),
     };
     if (p.provider && p.provider !== 'claude') info.provider = p.provider;
     if (chosen) {
