@@ -104,6 +104,8 @@ export interface MainInput {
   sessionId: string;
   cwd: string;
   role: string;
+  /** Patch IGO: tên nhân vật lấy từ registry (Agent Office ghi tên tiếng Việt). */
+  name?: string;
   startedAt: number;
   status: AgentStatus;
   waitingFor?: string;
@@ -327,7 +329,9 @@ export class Office {
     const chosen = this.roomCharacter(roomId, p.id, p.sessionId);
     // A mesma sessão retomada noutro processo (ex.: "Assumir aqui") mantém o nome, mesmo com o processo antigo
     // ainda saindo do escritório.
-    const person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId));
+    let person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId));
+    // Patch IGO: registry có tên riêng (ví dụ Xây/Soát/Trực) thì dùng làm tên nhân vật.
+    if (p.name) person = { ...person, name: p.name };
     const info: AgentInfo = {
       id: p.id,
       kind: 'main',

@@ -314,6 +314,7 @@ export class ClaudeWatcher implements AgentSource {
         sessionId: entry.sessionId,
         cwd: entry.cwd,
         role: entry.agent ? tr('Agente {0}', [entry.agent]) : tr('Agente principal'),
+        name: entry.name,
         startedAt: entry.startedAt ?? this.now(),
         status: st.status ?? 'idle',
         waitingFor: st.waitingFor,
