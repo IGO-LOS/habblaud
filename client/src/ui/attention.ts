@@ -7,6 +7,7 @@ interface AttentionItem {
   title: string;
   reason: string;
   pr?: string | null;
+  url?: string | null;
 }
 
 const POLL_MS = 30_000;
@@ -55,15 +56,17 @@ export function mountAttention(): void {
       reason.textContent = ` — ${it.reason} `;
       reason.style.opacity = '0.85';
       row.appendChild(reason);
-      if (it.pr) {
+      const mkLink = (href: string, label: string) => {
         const a = document.createElement('a');
-        a.href = it.pr;
+        a.href = href;
         a.target = '_blank';
         a.rel = 'noreferrer';
-        a.textContent = 'PR ↗';
-        a.style.cssText = 'color:#E8A0A8;font-weight:700;text-decoration:none';
+        a.textContent = label;
+        a.style.cssText = 'color:#E8A0A8;font-weight:700;text-decoration:none;margin-right:8px';
         row.appendChild(a);
-      }
+      };
+      if (it.url) mkLink(it.url, 'Ticket ↗');
+      if (it.pr) mkLink(it.pr, 'PR ↗');
       bar.appendChild(row);
     }
     bar.style.display = 'block';
