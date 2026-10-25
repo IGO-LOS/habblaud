@@ -1,4 +1,7 @@
 // Rotas da API (/api/*). Respostas JSON; rotas desconhecidas -> 404 JSON.
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { NAME_MAX, parseAppearanceParts, parseCharacterName, parseSeed } from '../../shared/appearance';
 import type { AccessInfo, AgentInfo, ModSummary, OfficeSnapshot, SourceInfo, UpdateStatus } from '../../shared/types';
@@ -358,6 +361,22 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/snapshot') {
       if (!isRead) methodNotAllowed(res, 'GET');
       else sendJson(res, 200, hub.current());
+      return true;
+    }
+    // Patch IGO: việc đang chờ người — Agent Office bridge ghi attention.json
+    if (path === '/api/attention') {
+      if (!isRead) methodNotAllowed(res, 'GET');
+      else {
+        let items: unknown[] = [];
+        try {
+          const raw = readFileSync(join(homedir(), '.agent-office', 'bridge', 'attention.json'), 'utf8');
+          const parsed = JSON.parse(raw) as { items?: unknown[] };
+          if (Array.isArray(parsed.items)) items = parsed.items;
+        } catch {
+          // chưa có file — danh sách rỗng
+        }
+        sendJson(res, 200, { items });
+      }
       return true;
     }
     if (path === '/api/health') {
