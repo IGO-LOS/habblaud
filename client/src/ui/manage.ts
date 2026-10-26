@@ -65,7 +65,9 @@ export function mountManage(group: HTMLElement): void {
       b.style.color = active ? '#fff' : '#93A4B5';
     }
     const v = VIEWS.find(x => x.key === key)!;
-    iframe.src = base + v.path;
+    // cb= chống cache: trình duyệt từng cache index.html của /office/ (trước khi
+    // nginx có no-cache) nên iframe cứ tải bundle cũ — URL mới là khỏi dính.
+    iframe.src = `${base}${v.path}?cb=${Date.now()}`;
   };
 
   for (const v of VIEWS) {
