@@ -3,6 +3,7 @@
 // fallback http://localhost:1420 khi chạy dev local. Đóng panel là về văn phòng.
 
 const VIEWS: { key: string; label: string; path: string }[] = [
+  { key: 'tasks', label: 'Tasks', path: 'tasks' },
   { key: 'sessions', label: 'Sessions', path: '' },
   { key: 'agents', label: 'Agents', path: 'agents' },
   { key: 'flows', label: 'Flows', path: 'flows' },
@@ -102,7 +103,7 @@ export function mountManage(group: HTMLElement): void {
   btn.addEventListener('click', async () => {
     if (!base) base = await officeBase();
     overlay.style.display = 'block';
-    select('sessions');
+    select('tasks');
   });
 
   group.prepend(btn);

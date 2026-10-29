@@ -368,12 +368,15 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       if (!isRead) methodNotAllowed(res, 'GET');
       else {
         let items: unknown[] = [];
-        try {
-          const raw = readFileSync(join(homedir(), '.agent-office', 'bridge', 'attention.json'), 'utf8');
-          const parsed = JSON.parse(raw) as { items?: unknown[] };
-          if (Array.isArray(parsed.items)) items = parsed.items;
-        } catch {
-          // chưa có file — danh sách rỗng
+        // 2 nguồn: attention.json (bridge Lark) + attention-hub.json (Task Hub)
+        for (const name of ['attention.json', 'attention-hub.json']) {
+          try {
+            const raw = readFileSync(join(homedir(), '.agent-office', 'bridge', name), 'utf8');
+            const parsed = JSON.parse(raw) as { items?: unknown[] };
+            if (Array.isArray(parsed.items)) items = items.concat(parsed.items);
+          } catch {
+            // chưa có file — bỏ qua
+          }
         }
         sendJson(res, 200, { items });
       }
