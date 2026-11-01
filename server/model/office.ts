@@ -197,11 +197,16 @@ class NameSet extends Set<string> {
 
 const byStart = (a: ShellJob, b: ShellJob) => a.startedAt - b.startedAt || a.id.localeCompare(b.id);
 
+/** Patch IGO: chờ tối đa chừng này để registry áp tên vai trước khi báo "arrived". */
+const ARRIVAL_NAME_GRACE_MS = 3_000;
+
 export class Office {
   private agents = new Map<string, AgentRecord>();
   private rooms = new Map<string, { path: string; createdAt: number }>();
   /** Patch IGO: phòng ghim (worktree của đội agent) — luôn hiện, không bị dọn khi trống. */
   private pinnedRooms = new Set<string>();
+  /** Patch IGO: toast "arrived" hoãn tới khi có tên vai (registry áp sau CLI vài trăm ms). */
+  private pendingArrivals = new Map<string, number>();
   private slots = new SlotAllocator(SLOT_COOLDOWN_MS);
   private roomNames = new Map<string, string>();
   private feed: FeedItem[] = [];
@@ -363,9 +368,18 @@ export class Office {
     const rec: AgentRecord = { info, history: [] };
     if (p.status === 'working') rec.turnStart = now;
     this.agents.set(p.id, rec);
-    const acc = this.deps.accountName(p.account);
-    this.notice('arrive', p.id, 'info', tr('👋 {0} chegou em {1}{2}', [info.name, this.roomName(roomId), acc ? ` (${acc})` : '']), roomId);
+    if (p.name || !this.pinnedRooms.has(roomId)) this.announceArrival(p.id);
+    else this.pendingArrivals.set(p.id, now + ARRIVAL_NAME_GRACE_MS);
     this.markDirty();
+  }
+
+  private announceArrival(id: string): void {
+    this.pendingArrivals.delete(id);
+    const rec = this.agents.get(id);
+    if (!rec) return;
+    const info = rec.info;
+    const acc = this.deps.accountName(info.account);
+    this.notice('arrive', id, 'info', tr('👋 {0} chegou em {1}{2}', [info.name, this.roomName(info.roomId), acc ? ` (${acc})` : '']), info.roomId);
   }
 
   /** Mesmo processo, sessão nova (/clear, /resume): o personagem continua, tarefas e números zeram. */
@@ -390,6 +404,7 @@ export class Office {
       info.role = role;
       changed = true;
     }
+    if (name && this.pendingArrivals.has(id)) this.announceArrival(id);
     if (changed) this.markDirty();
   }
 
@@ -940,6 +955,7 @@ export class Office {
   /** Avança o demo e remove quem já cumpriu o período de graça. Chamar a cada ~250 ms. */
   tick(): void {
     const now = this.now();
+    for (const [id, due] of [...this.pendingArrivals]) if (now >= due) this.announceArrival(id);
     if (this.demo) {
       const r = this.demo.tick(now);
       if (r.changed) {
