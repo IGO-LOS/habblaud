@@ -200,6 +200,8 @@ const byStart = (a: ShellJob, b: ShellJob) => a.startedAt - b.startedAt || a.id.
 export class Office {
   private agents = new Map<string, AgentRecord>();
   private rooms = new Map<string, { path: string; createdAt: number }>();
+  /** Patch IGO: phòng ghim (worktree của đội agent) — luôn hiện, không bị dọn khi trống. */
+  private pinnedRooms = new Set<string>();
   private slots = new SlotAllocator(SLOT_COOLDOWN_MS);
   private roomNames = new Map<string, string>();
   private feed: FeedItem[] = [];
@@ -367,6 +369,30 @@ export class Office {
   }
 
   /** Mesmo processo, sessão nova (/clear, /resume): o personagem continua, tarefas e números zeram. */
+  /**
+   * Patch IGO: cập nhật tên vai + dòng việc của nhân vật main theo registry.
+   * Claude Code bản mới tự ghi sessions/<pid>.json ngay khi khởi động (chưa
+   * có tên), Agent Office ghi đè vài trăm ms sau — addMain chỉ đặt tên một
+   * lần nên phải áp lại ở đây; task đổi thì dòng việc đổi theo.
+   */
+  setIdentity(id: string, name: string | undefined, role: string): void {
+    const rec = this.agents.get(id);
+    if (!rec) return;
+    const info = rec.info;
+    let changed = false;
+    if (name && info.name !== name && !info.custom) {
+      info.name = name;
+      info.look = pickName(name, new Set()).look;
+      info.seed = hash32(name);
+      changed = true;
+    }
+    if (info.role !== role) {
+      info.role = role;
+      changed = true;
+    }
+    if (changed) this.markDirty();
+  }
+
   switchSession(id: string, sessionId: string): void {
     const rec = this.agents.get(id);
     if (!rec || rec.info.sessionId === sessionId) return;
@@ -936,7 +962,7 @@ export class Office {
     if (this.effects.prune(now)) this.markDirty();
     if (removed) {
       const occupied = new Set([...this.agents.values()].map((r) => r.info.roomId));
-      for (const id of [...this.rooms.keys()]) if (!occupied.has(id)) this.rooms.delete(id);
+      for (const id of [...this.rooms.keys()]) if (!occupied.has(id) && !this.pinnedRooms.has(id)) this.rooms.delete(id);
       this.recomputeRoomNames();
       this.markDirty();
     }
@@ -1042,6 +1068,18 @@ export class Office {
       }
     }
     return out;
+  }
+
+  /** Patch IGO: dựng sẵn phòng cho các worktree đội agent lúc khởi động, kể cả khi chưa có ai. */
+  pinRooms(paths: string[]): void {
+    const now = this.now();
+    for (const p of paths) {
+      const roomId = normalizeCwd(p);
+      this.pinnedRooms.add(roomId);
+      if (!this.rooms.has(roomId)) this.rooms.set(roomId, { path: roomId, createdAt: now });
+    }
+    this.recomputeRoomNames();
+    this.markDirty();
   }
 
   private ensureRoom(roomId: string, now: number): void {

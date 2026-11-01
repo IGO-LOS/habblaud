@@ -329,6 +329,8 @@ export class ClaudeWatcher implements AgentSource {
       t = fresh;
     }
     t.entry = entry;
+    // Patch IGO: registry là nguồn sự thật cho tên vai + task đang làm
+    office.setIdentity(key, entry.name, entry.agent ? tr('Agente {0}', [entry.agent]) : tr('Agente principal'));
     this.pumpMain(t);
     this.scanSubagents(t, boot);
     this.pumpSubs(t);

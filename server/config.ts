@@ -31,6 +31,8 @@ export interface ServerConfig {
   usageDir: string;
   /** Nomes extras aceitos no cabeçalho Host/Origin (HABBLAUD_ALLOWED_HOSTS); localhost e IPs sempre valem. */
   allowedHosts: Set<string>;
+  /** Patch IGO: phòng luôn hiện dù trống (HABBLAUD_PINNED_ROOMS, đường dẫn ngăn bằng dấu phẩy). */
+  pinnedRooms: string[];
   /**
    * Terminal (GET /api/agents/:id/terminal) ligado: só com bind local, isto é, com o Habblaud acessível apenas
    * pelo próprio computador (ver terminalOffReason). É a trava de tudo o que mostra ou age sobre as sessões.
@@ -241,6 +243,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     dataDir: resolve(env.HABBLAUD_DATA_DIR?.trim() || (inDocker ? '/data' : join(home, '.habblaud'))),
     usageDir: resolve(env.HABBLAUD_USAGE_DIR?.trim() || join(home, '.habblaud', 'usage')),
     allowedHosts: parseAllowedHosts(env.HABBLAUD_ALLOWED_HOSTS),
+    pinnedRooms: (env.HABBLAUD_PINNED_ROOMS ?? '').split(',').map((x) => x.trim()).filter(Boolean),
     terminal: terminalOffReason(env, host, inDocker) === undefined,
     messages: messagesOffReason(env, host, inDocker) === undefined,
     timeline: !env.HABBLAUD_TIMELINE?.trim() || isTruthy(env.HABBLAUD_TIMELINE),
