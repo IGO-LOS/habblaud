@@ -107,4 +107,24 @@ export function mountManage(group: HTMLElement): void {
   });
 
   group.prepend(btn);
+  group.prepend(tasksLink());
+}
+
+// Lối sang trang Công việc đứng riêng (/task → /office/tasks), trang đó có nút
+// "về văn phòng" quay lại đây. Chạy dev local thì trỏ thẳng frontend :1420.
+function tasksLink(): HTMLAnchorElement {
+  const a = document.createElement('a');
+  a.href = '/task';
+  a.title = 'Trang Công việc (tv.lacora.tech/task)';
+  a.textContent = '📋 Tasks';
+  a.style.cssText = [
+    'margin-right:8px', 'padding:4px 10px', 'border-radius:8px',
+    'border:1px solid #2F5A78', 'background:#16324A', 'color:#DCEBF7',
+    'font:inherit', 'font-size:12px', 'font-weight:700', 'text-decoration:none',
+    'display:inline-flex', 'align-items:center',
+  ].join(';');
+  void officeBase().then((base) => {
+    if (base !== '/office/') a.href = `${base}tasks`;
+  });
+  return a;
 }
